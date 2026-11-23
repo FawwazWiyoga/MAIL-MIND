@@ -1,0 +1,27 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { TopNav } from '@/components/layout/TopNav'
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      router.push('/login')
+    }
+  }, [router])
+
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopNav />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
+    </div>
+  )
+}
