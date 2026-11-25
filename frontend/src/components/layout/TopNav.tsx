@@ -1,14 +1,17 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Search, Bell, LogOut, User } from 'lucide-react'
+import { Search, Bell, LogOut, User as UserIcon } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
 
 export function TopNav() {
   const router = useRouter()
+  const { user, logout } = useAuthStore()
 
   const handleLogout = () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    logout()
     router.push('/login')
   }
 
@@ -24,12 +27,17 @@ export function TopNav() {
           />
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {user && (
+          <span className="text-xs text-muted-foreground font-medium hidden md:inline-block">
+            {user.full_name || user.email}
+          </span>
+        )}
         <button className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
           <Bell className="w-5 h-5" />
         </button>
         <button className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
-          <User className="w-5 h-5" />
+          <UserIcon className="w-5 h-5" />
         </button>
         <button
           onClick={handleLogout}

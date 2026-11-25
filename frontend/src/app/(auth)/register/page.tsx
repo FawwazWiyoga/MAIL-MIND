@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { api } from '@/lib/api'
 
 const registerSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -32,18 +33,11 @@ export default function RegisterPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? 'Registration failed')
-      }
+      await api.post('/auth/register', data)
       router.push('/login?registered=true')
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Registration failed'
+      setError(msg)
     } finally {
       setIsLoading(false)
     }
