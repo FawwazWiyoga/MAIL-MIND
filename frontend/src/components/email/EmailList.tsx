@@ -1,16 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { RefreshCw, Inbox, AlertCircle } from 'lucide-react'
+import { RefreshCw, Inbox } from 'lucide-react'
 import { api } from '@/lib/api'
 import { EmailCard } from './EmailCard'
+import { EmailDetailModal } from './EmailDetailModal'
 import { EmailMessage } from '@/types'
 
 export function EmailList() {
   const queryClient = useQueryClient()
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null)
 
-  const { data: emails = [], isLoading, error } = useQuery<EmailMessage[]>({
+  const { data: emails = [], isLoading } = useQuery<EmailMessage[]>({
     queryKey: ['emails'],
     queryFn: async () => {
       const res = await api.get('/emails?per_page=50')
@@ -85,9 +88,14 @@ export function EmailList() {
               isRead={email.is_read}
               priority={email.priority}
               category={email.category}
+              onClick={() => setSelectedEmail(email)}
             />
           ))}
         </div>
+      )}
+
+      {selectedEmail && (
+        <EmailDetailModal email={selectedEmail} onClose={() => setSelectedEmail(null)} />
       )}
     </div>
   )

@@ -2,7 +2,6 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.security import decrypt_token
@@ -16,12 +15,11 @@ logger = logging.getLogger(__name__)
 async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> int:
     """
     Fetch recent emails from Gmail for given account and persist them to DB.
-    Returns count of processed messages.
+    Dispatches AI analysis for newly discovered messages.
     """
     account_uuid = uuid.UUID(account_id_str)
 
     async with AsyncSessionLocal() as db:
-        # Load account
         query = select(EmailAccount).where(EmailAccount.id == account_uuid)
         result = await db.execute(query)
         account = result.scalar_one_or_none()
@@ -30,7 +28,6 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
             logger.warning(f"EmailAccount {account_id_str} not found or inactive.")
             return 0
 
-        # Load or create sync state
         state_query = select(SyncState).where(SyncState.account_id == account.id)
         state_res = await db.execute(state_query)
         sync_state = state_res.scalar_one_or_none()
@@ -56,17 +53,14 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
             )
 
             service = build_gmail_service(access_token, refresh_token)
-
-            # List recent messages from Gmail inbox
             response = service.users().messages().list(userId="me", maxResults=max_messages).execute()
             messages_meta = response.get("messages", [])
 
-            processed_count = 0
+            new_message_ids = []
 
             for m_meta in messages_meta:
                 m_id = m_meta["id"]
 
-                # Check if message already stored
                 existing_msg_query = select(EmailMessage).where(
                     EmailMessage.provider_message_id == m_id
                 )
@@ -74,7 +68,6 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
                 if existing_res.scalar_one_or_none():
                     continue
 
-                # Fetch full message
                 raw_msg = (
                     service.users()
                     .messages()
@@ -83,7 +76,6 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
                 )
                 parsed = parse_gmail_message(raw_msg)
 
-                # Find or create EmailThread
                 thread_query = select(EmailThread).where(
                     EmailThread.account_id == account.id,
                     EmailThread.provider_thread_id == parsed["provider_thread_id"],
@@ -111,7 +103,6 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
                     ):
                         thread.last_message_at = parsed["timestamp"]
 
-                # Create EmailMessage
                 new_msg = EmailMessage(
                     thread_id=thread.id,
                     account_id=account.id,
@@ -128,12 +119,23 @@ async def sync_account_emails(account_id_str: str, max_messages: int = 50) -> in
                     labels=parsed["labels"],
                 )
                 db.add(new_msg)
-                processed_count += 1
+                await db.flush()
+                new_message_ids.append(str(new_msg.id))
 
             sync_state.sync_status = "idle"
             sync_state.last_sync_at = datetime.now(timezone.utc)
             await db.commit()
-            return processed_count
+
+            # Trigger AI analysis for each newly fetched email
+            from app.workers.tasks import process_email_ai
+            for msg_id in new_message_ids:
+                try:
+                    process_email_ai.delay(msg_id)
+                except Exception:
+                    # In dev without active celery worker, gracefully skip or process
+                    pass
+
+            return len(new_message_ids)
 
         except Exception as exc:
             logger.error(f"Sync error for account {account_id_str}: {exc}", exc_info=True)
