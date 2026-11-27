@@ -2,7 +2,7 @@
 
 > An open-source, AI-powered email workspace that helps you manage, understand, search, and act on your emails intelligently.
 
-## ✨ Features
+## Features
 
 - **AI Email Summarization** — Instant summaries of emails and long threads
 - **Smart Categorization** — Automatic classification (Work, Personal, Academic, Finance, etc.)
@@ -13,7 +13,7 @@
 - **Reply Suggestions** — AI-generated reply drafts in your preferred tone
 - **Daily Digest** — Summary of your email activity each morning
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -25,7 +25,7 @@
 | Desktop | Tauri 2 *(planned)* |
 | Containerization | Docker + Docker Compose |
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -54,7 +54,7 @@ docker compose exec api alembic upgrade head
 # API docs: http://localhost:8000/docs
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 MAIL-MIND/
@@ -83,7 +83,7 @@ MAIL-MIND/
 └── prd.md              # Product Requirements Document
 ```
 
-## 🛠️ Development
+## Development
 
 ### Common Commands
 
@@ -115,7 +115,7 @@ npm install
 npm run dev
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 
@@ -125,10 +125,10 @@ Contributions are welcome! Please:
 4. Push to the branch
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
-## ⚠️ Privacy Notice
+## Privacy Notice
 
 MailMind AI processes your email content to provide AI features. When cloud AI providers are enabled, email content may be sent to those providers. You control this via Settings > AI Privacy.
